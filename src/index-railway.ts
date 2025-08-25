@@ -763,6 +763,7 @@ app.post(
             });
           }
         })();
+        return; // 重要: 非同期処理後に終了
       }
 
       if (message.data.name === "member-sbt") {
@@ -942,6 +943,7 @@ app.post(
             });
           }
         })();
+        return; // 重要: 非同期処理後に終了
       }
 
       if (message.data.name === "sync") {
