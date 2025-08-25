@@ -30,7 +30,8 @@ const roleNumbers = {
 };
 
 if (CONST.API_ENV == undefined) {
-  console.log("bizenAPI SETTING ERROR");
+  console.log("bizenAPI SETTING ERROR: API_ENV is not defined");
+  console.log("Available environment variables:", Object.keys(process.env).filter(key => !key.includes('SECRET')));
   process.exit(1);
 }
 const app = express();
@@ -868,4 +869,7 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${CONST.API_ENV}`);
+  console.log(`API Name: ${CONST.API_NAME}`);
+  console.log(`Version: ${CONST.VERSION || '1.0.0'}`);
+  console.log('Server started successfully. Ready to accept connections.');
 });
