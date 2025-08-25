@@ -1027,6 +1027,98 @@ app.post(
         }
       }
       
+      // /member コマンドの実装
+      if (message.data.name === "member") {
+        const subCommand = message.data.options?.[0]?.value || "help";
+        
+        if (subCommand === "help") {
+          const helpMessage = `**📋 /member コマンドの使い方**\n\n` +
+            `\`/member check\` - あなたの登録情報を確認\n` +
+            `\`/member help\` - このヘルプを表示\n\n` +
+            `**登録情報に含まれる内容:**\n` +
+            `• Discord ID\n` +
+            `• ウォレットアドレス (EOA)\n` +
+            `• 保有ロール\n` +
+            `• 登録日時`;
+            
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: helpMessage,
+              flags: 64, // Ephemeral
+            },
+          });
+        }
+        
+        if (subCommand === "check") {
+          // 即座にレスポンスを返す
+          res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: "登録情報を確認中です...",
+              flags: 64, // Ephemeral
+            },
+          });
+          
+          // 非同期で処理
+          (async () => {
+            try {
+              const member = await memberModel.getMember(message.member.user.id);
+              let memberInfo = "";
+              
+              if (!member || member.message === "member not found") {
+                memberInfo = `**❌ 未登録**\n\n` +
+                  `あなたはまだウォレットアドレスを登録していません。\n` +
+                  `\`/regist\` コマンドでウォレットアドレスを登録してください。`;
+              } else {
+                const roles = member.Roles ? Array.from(member.Roles).join(", ") : "なし";
+                const eoa = member.Eoa || "未設定";
+                const registeredDate = member.Created ? new Date(member.Created).toLocaleDateString('ja-JP') : "不明";
+                
+                memberInfo = `**✅ あなたの登録情報**\n\n` +
+                  `**Discord ID:** ${member.DiscordId}\n` +
+                  `**名前:** ${member.Name}\n` +
+                  `**ウォレットアドレス:** \`${eoa}\`\n` +
+                  `**ロール:** ${roles}\n` +
+                  `**登録日:** ${registeredDate}`;
+                  
+                if (member.TmpEoa && member.TmpEoa !== eoa) {
+                  memberInfo += `\n\n⚠️ **保留中のアドレス:** \`${member.TmpEoa}\`\n` +
+                    `登録を完了するには、指定されたURLにアクセスしてください。`;
+                }
+              }
+              
+              await controller.sendMessage({
+                function: "discord-direct-message",
+                params: {
+                  message: memberInfo,
+                  userId: message.member.user.id,
+                },
+              });
+            } catch (error) {
+              console.error("Error in member check:", error);
+              await controller.sendMessage({
+                function: "discord-direct-message",
+                params: {
+                  message: "エラーが発生しました。しばらく待ってから再度お試しください。",
+                  userId: message.member.user.id,
+                },
+              });
+            }
+          })();
+          return;
+        }
+        
+        // その他のサブコマンド
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `不明なサブコマンド: ${subCommand}\n\`/member help\` でヘルプを確認してください。`,
+            flags: 64,
+          },
+        });
+      }
+      
       // /system コマンドの実装
       if (message.data.name === "system") {
         const systemInfo = {
