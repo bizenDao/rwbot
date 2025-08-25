@@ -659,7 +659,22 @@ app.post(
         (async () => {
           try {
             let sendMessage = "";
-            const member = await discordConnect.memberInfo(message.member.user.id);
+            // Slash commandから直接メンバー情報を取得
+            const member = {
+              DiscordId: message.member.user.id,
+              Name: message.member.nick || message.member.user.global_name || message.member.user.username,
+              Username: message.member.user.username,
+              Globalname: message.member.user.global_name,
+              Roles: message.member.roles.map(roleId => {
+                // ロールIDからロール名への変換は後で実装
+                return roleId;
+              }),
+              Icon: message.member.user.avatar ? 
+                `https://cdn.discordapp.com/avatars/${message.member.user.id}/${message.member.user.avatar}.png` : 
+                'https://cdn.discordapp.com/embed/avatars/0.png',
+              Join: message.member.joined_at
+            };
+            
             const eoa = message.data.options[0].value;
             const exist = await memberModel.getMemberByEoa(eoa);
             const nowMember = await memberModel.getMember(message.member.user.id);
