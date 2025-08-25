@@ -1026,7 +1026,44 @@ app.post(
           });
         }
       }
-      console.log("slash command requested" + JSON.stringify(message));
+      
+      // /system コマンドの実装
+      if (message.data.name === "system") {
+        const systemInfo = {
+          api_name: CONST.API_NAME || "Bizen API",
+          environment: CONST.API_ENV || "Unknown",
+          build_time: CONST.BUILD_TIME || new Date().toISOString(),
+          discord_bot: CONST.DISCORD_BOT_KEY ? "Connected" : "Not Connected",
+          database: CONST.DYNAMO_TABLE_PREFIX ? "Connected" : "Not Connected",
+          ethereum: CONST.RPC_URL ? "Connected" : "Not Connected"
+        };
+        
+        const infoMessage = `**System Information**\n` +
+          `API: ${systemInfo.api_name}\n` +
+          `Environment: ${systemInfo.environment}\n` +
+          `Build Time: ${systemInfo.build_time}\n` +
+          `Discord Bot: ${systemInfo.discord_bot}\n` +
+          `Database: ${systemInfo.database}\n` +
+          `Ethereum: ${systemInfo.ethereum}`;
+        
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: infoMessage,
+            flags: 64, // Ephemeral
+          },
+        });
+      }
+      
+      // 未実装のコマンドへのデフォルト応答
+      console.log("Unknown slash command: " + message.data.name);
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content: `コマンド「/${message.data.name}」は現在実装されていません。`,
+          flags: 64, // Ephemeral
+        },
+      });
     }
   }
 );
