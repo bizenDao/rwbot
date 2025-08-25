@@ -10,7 +10,7 @@
     "flow": "sh ./deploy/build.sh flow && exit 1",
     "stg": "sh ./deploy/build.sh stg && exit 1",
     "prd": "sh ./deploy/build.sh prd && exit 1",
-    "build": "tsc",
+    "build": "npx tsc --project tsconfig.railway.json",
     "start": "node dist/index-railway.js",
     "dev": "ts-node src/index-railway.ts"
   },
@@ -37,5 +37,10 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.12.1",
     "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.17"
   }
 }
