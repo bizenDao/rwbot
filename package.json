@@ -1,0 +1,38 @@
+{
+  "name": "bizbot",
+  "version": "1.0.0",
+  "description": "bizendao Discord Bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "local": "sh ./deploy/build.sh local && exit 1",
+    "test": "sh ./deploy/build.sh test && exit 1",
+    "flow": "sh ./deploy/build.sh flow && exit 1",
+    "stg": "sh ./deploy/build.sh stg && exit 1",
+    "prd": "sh ./deploy/build.sh prd && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goodsun/bizbot.git"
+  },
+  "author": "goodsun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/goodsun/bizbot/issues"
+  },
+  "homepage": "https://github.com/goodsun/bizbot#readme",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.588.0",
+    "@aws-sdk/client-s3": "^3.569.0",
+    "@aws-sdk/client-sqs": "^3.569.0",
+    "@aws-sdk/util-dynamodb": "^3.588.0",
+    "@notionhq/client": "^2.2.15",
+    "@vendia/serverless-express": "^4.12.6",
+    "crypto-js": "^4.2.0",
+    "discord-interactions": "^3.4.0",
+    "discord.js": "^14.15.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.12.1",
+    "express": "^4.19.2"
+  }
+}

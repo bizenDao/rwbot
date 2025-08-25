@@ -1,0 +1,13 @@
+{
+  "name": "system",
+  "description": "Administrator only",
+  "options": [
+    {
+      "name": "str",
+      "type": 3,
+      "required": true,
+      "description": "only administrator or manager [help|ver|info]"
+    }
+  ]
+}
+

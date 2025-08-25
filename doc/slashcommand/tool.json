@@ -1,0 +1,31 @@
+{
+  "name": "apply",
+  "description": "bizbot tool",
+  "type": 1,
+  "options": [
+    {
+      "name": "str",
+      "type": 3,
+      "required": false,
+      "description": "文字列"
+    },
+    {
+      "name": "int",
+      "type": 4,
+      "required": false,
+      "description": "整数"
+    },
+    {
+      "name": "bool",
+      "type": 5,
+      "required": false,
+      "description": "true/false"
+    },
+    {
+      "name": "num",
+      "type": 10,
+      "required": false,
+      "description": "自然数"
+    }
+  ]
+}

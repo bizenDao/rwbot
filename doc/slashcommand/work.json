@@ -1,0 +1,31 @@
+{
+  "name": "work",
+  "description": "bizbot があなたのために働きます",
+  "type": 1,
+  "options": [
+    {
+      "name": "str",
+      "type": 3,
+      "required": false,
+      "description": "メールアドレス"
+    },
+    {
+      "name": "int",
+      "type": 4,
+      "required": false,
+      "description": "年齢"
+    },
+    {
+      "name": "bool",
+      "type": 5,
+      "required": false,
+      "description": "会員"
+    },
+    {
+      "name": "num",
+      "type": 10,
+      "required": false,
+      "description": "flortOK"
+    }
+  ]
+}
