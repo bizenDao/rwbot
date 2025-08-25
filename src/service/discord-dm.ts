@@ -2,7 +2,7 @@ import { CONST } from "../common/const.js";
 
 const bot_key = CONST.DISCORD_BOT_KEY;
 
-const createDM = async (userId: string) => {
+const createDM = async (userId: string): Promise<string> => {
   const url = "https://discord.com/api/v10/users/@me/channels";
   const body = {
     recipient_id: userId
@@ -21,7 +21,7 @@ const createDM = async (userId: string) => {
     throw new Error(`Failed to create DM channel: ${response.status}`);
   }
   
-  const data = await response.json();
+  const data: any = await response.json();
   return data.id; // DMチャンネルID
 };
 
@@ -49,7 +49,7 @@ const sendDirectMessage = async (userId: string, message: string) => {
       throw new Error(`Failed to send DM: ${response.status}`);
     }
     
-    const data = await response.json();
+    const data: any = await response.json();
     return data;
   } catch (error) {
     console.error("Error sending direct message:", error);

@@ -31,7 +31,10 @@ const roleNumbers = {
 
 if (CONST.API_ENV == undefined) {
   console.log("bizenAPI SETTING ERROR: API_ENV is not defined");
-  console.log("Available environment variables:", Object.keys(process.env).filter(key => !key.includes('SECRET')));
+  console.log(
+    "Available environment variables:",
+    Object.keys(process.env).filter((key) => !key.includes("SECRET"))
+  );
   process.exit(1);
 }
 const app = express();
@@ -49,20 +52,103 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+// /interactions以外のルートにのみjsonミドルウェアを適用
+app.use((req, res, next) => {
+  if (req.path === '/interactions') {
+    // /interactionsエンドポイントはraw bodyが必要
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 app.get("/", async (_, res) => {
-  const result = "<h1>" + CONST.API_NAME + " ver." + CONST.VERSION + "</h1>";
+  const buildTime = CONST.BUILD_TIME || new Date().toISOString();
+  const result = `
+    <h1>${CONST.API_NAME || "Bizen API"}</h1>
+    <h2>System Information</h2>
+    <ul>
+      <li><strong>Environment:</strong> ${CONST.API_ENV || "Not Set"}</li>
+      <li><strong>Build Time:</strong> ${buildTime}</li>
+    </ul>
+
+    <h2>Connection Status</h2>
+    <ul>
+      <li><strong>DynamoDB Region:</strong> ${
+        CONST.DYNAMO_REGION || "Not Set"
+      }</li>
+      <li><strong>DynamoDB Table Prefix:</strong> ${
+        CONST.DYNAMO_TABLE_PREFIX || "Not Set"
+      }</li>
+      <li><strong>DynamoDB Master Prefix:</strong> ${
+        CONST.DYNAMO_TABLE_PREFIX_MASTER || "Not Set"
+      }</li>
+      <li><strong>DynamoDB Soft Delete:</strong> ${
+        CONST.DYNAMO_SOFT_DELETE || "false"
+      }</li>
+    </ul>
+
+    <h2>Discord Configuration</h2>
+    <ul>
+      <li><strong>Guild ID:</strong> ${CONST.DISCORD_GUILD_ID || "Not Set"}</li>
+      <li><strong>Channel ID:</strong> ${
+        CONST.DISCORD_CHANNEL_ID || "Not Set"
+      }</li>
+      <li><strong>Admin User ID:</strong> ${
+        CONST.DISCORD_ADMIN_USER_ID || "Not Set"
+      }</li>
+      <li><strong>Public Key Status:</strong> ${
+        CONST.DISCORD_PUB_KEY ? "✓ Configured" : "✗ Not Configured"
+      }</li>
+      <li><strong>Bot Token Status:</strong> ${
+        CONST.DISCORD_BOT_KEY ? "✓ Configured" : "✗ Not Configured"
+      }</li>
+    </ul>
+
+    <h2>External Services</h2>
+    <ul>
+      <li><strong>Notion API Status:</strong> ${
+        CONST.NOTION_API_KEY ? "✓ Configured" : "✗ Not Configured"
+      }</li>
+      <li><strong>Notion Database ID:</strong> ${
+        CONST.NOTION_DATABASE_ID || "Not Set"
+      }</li>
+      <li><strong>Provider URL:</strong> ${CONST.PROVIDER_URL || "Not Set"}</li>
+      <li><strong>AES Encryption:</strong> ${
+        process.env.AES_SECRET_KEY ? "✓ Configured" : "✗ Not Configured"
+      }</li>
+    </ul>
+
+    <h2>Ethereum Configuration</h2>
+    <ul>
+      <li><strong>RPC URL:</strong> ${CONST.RPC_URL || "Not Set"}</li>
+      <li><strong>Manager Contract:</strong> ${
+        CONST.MANAGER_CA || "Not Set"
+      }</li>
+      <li><strong>Donate Contract:</strong> ${CONST.DONATE_CA || "Not Set"}</li>
+    </ul>
+
+    <h2>Endpoints</h2>
+    <ul>
+      <li><a href="/member">/member</a> - Member list</li>
+      <li><a href="/shop">/shop</a> - Shop items</li>
+      <li><a href="/item">/item</a> - Items</li>
+      <li><a href="/discord">/discord</a> - Discord info</li>
+      <li><a href="/notion">/notion</a> - Notion sync</li>
+      <li><a href="/init">/init</a> - Initialize database</li>
+    </ul>
+  `;
   res.send(result);
 });
 
 app.get("/init", async (_, res) => {
-  const result = "<h1>BIZBOT API ver." + CONST.VERSION + " init</h1>";
+  const buildTime = CONST.BUILD_TIME || new Date().toISOString();
+  const result = `<h1>BIZBOT API init</h1><p>Build Time: ${buildTime}</p>`;
   const member = await controller.memberList();
   const shop = await controller.shopList();
   const item = await controller.itemList();
   const content = await contentModel.getItems("count");
-  await controller.sqsSend({
+  await controller.sendMessage({
     function: "discord-direct-message",
     params: {
       message: "initialized dynamo setup",
@@ -239,7 +325,7 @@ app.get("/dynamo/member/:id", async (req, res) => {
 
 app.get("/dynamosync", async (_, res) => {
   if (CONST.API_ENV != "PRD") {
-    await controller.sqsSend({
+    await controller.sendMessage({
       function: "dynamo-sync",
       params: {
         user_id: "1142658556609450065",
@@ -436,7 +522,7 @@ app.get("/discord/:id", async (req, res) => {
 
 app.get("/sendMember/:id/:mes", async (req, res) => {
   const message = "sendMessage for member:";
-  await controller.sqsSend({
+  await controller.sendMessage({
     function: "discord-direct-message",
     params: {
       message: req.params.mes,
@@ -485,7 +571,7 @@ app.post("/transrequest", async (req, res) => {
       "/" +
       body.id;
 
-    await controller.sqsSend({
+    await controller.sendMessage({
       function: "discord-message",
       params: {
         message: message,
@@ -494,7 +580,7 @@ app.post("/transrequest", async (req, res) => {
     });
 
     if (messageSend) {
-      await controller.sqsSend({
+      await controller.sendMessage({
         function: "discord-direct-message",
         params: {
           message: message,
@@ -502,7 +588,7 @@ app.post("/transrequest", async (req, res) => {
         },
       });
     } else {
-      await controller.sqsSend({
+      await controller.sendMessage({
         function: "discord-message",
         params: {
           message: message,
@@ -511,7 +597,7 @@ app.post("/transrequest", async (req, res) => {
       });
     }
 
-    res.send({
+    return res.send({
       message: "APPROVED",
       requestInfo: {
         ca: body.ca,
@@ -523,13 +609,16 @@ app.post("/transrequest", async (req, res) => {
       },
     });
   }
-  res.send({ message: "NOT_APPROVED" });
+  return res.send({ message: "NOT_APPROVED" });
 });
 
+// Discord interactionsは専用の処理が必要
 app.post(
   "/interactions",
+  express.raw({ type: "application/json" }),
   verifyKeyMiddleware(CONST.DISCORD_PUB_KEY),
   async (req, res) => {
+    // req.bodyをパース（verifyKeyMiddlewareがraw bodyを検証後、自動的にパースする）
     const message = req.body;
 
     if (message === 1) {
@@ -540,7 +629,7 @@ app.post(
       console.log("slash command request" + JSON.stringify(message));
 
       if (message.data.name === "gm") {
-        await controller.sqsSend({
+        await controller.sendMessage({
           function: "discord-message",
           params: {
             message: `${message.member.user.global_name}さんGM!`,
@@ -557,85 +646,113 @@ app.post(
       }
 
       if (message.data.name === "regist") {
-        let sendMessage = "";
-        const member = await discordConnect.memberInfo(message.member.user.id);
-        const eoa = message.data.options[0].value;
-        const exist = await memberModel.getMemberByEoa(eoa);
-        const nowMember = await memberModel.getMember(message.member.user.id);
-        const isEOA = await getDonate.isEOA(eoa);
-        if (!isEOA) {
-          sendMessage = "こちらのアドレスはEOAではありません。 \n EOA:" + eoa;
-        } else if (
-          exist.DiscordId != undefined &&
-          exist.DiscordId != message.member.user.id
-        ) {
-          sendMessage =
-            "こちらのEOAは " + exist.Name + " に利用されています \n EOA:" + eoa;
-        } else if (
-          exist.message == "member not found" &&
-          (nowMember == undefined ||
-            nowMember.Eoa == undefined ||
-            nowMember.Eoa == "")
-        ) {
-          memberModel.memberUpdate(member);
-          const secret = utils.generateRandomString(12);
-          await memberModel.memberSetSecret(
-            message.member.user.id,
-            message.data.options[0].value,
-            secret,
-            message.member.roles
-          );
-          sendMessage =
-            message.member.user.global_name +
-            "のアカウントを以下のウォレットアドレスに紐づけます \n EOA:" +
-            eoa +
-            "\n" +
-            "\n<ご注意>:" +
-            "\n登録されたウォレットアドレスに入っているトークンによりロールが付与されます。" +
-            "\nウォレットアドレスを変更すると別の人とみなされますのでご注意ください" +
-            "\n" +
-            "\n以下のURLにメタマスクをインストールしたブラウザでアクセスし、ウォレットを接続して登録を完了してください。" +
-            "\nURL : " +
-            CONST.PROVIDER_URL +
-            "/regist/" +
-            message.member.user.id +
-            "/" +
-            secret +
-            "\n SECRET : " +
-            secret;
-        } else if (eoa == nowMember.Eoa) {
-          memberModel.memberUpdate(member);
-          sendMessage = "メンバー情報をアップデートしました。 \n EOA:" + eoa;
-        } else {
-          sendMessage =
-            "あなたのDiscordには既に\n" +
-            nowMember.Eoa +
-            "が紐づいています" +
-            "\n解除するには以下のURLにメタマスクをインストールしたブラウザでアクセスしてください。" +
-            CONST.PROVIDER_URL +
-            "/disconnect/";
-        }
-
-        await controller.sqsSend({
-          function: "discord-direct-message",
-          params: {
-            message: sendMessage,
-            userId: message.member.user.id,
-          },
-        });
-
+        // 即座にレスポンスを返す
         res.send({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: sendMessage,
+            content: "ウォレット登録を処理中です。DMで詳細をお送りします。",
             flags: 64,
           },
         });
+
+        // 非同期で処理を実行
+        (async () => {
+          try {
+            let sendMessage = "";
+            const member = await discordConnect.memberInfo(message.member.user.id);
+            const eoa = message.data.options[0].value;
+            const exist = await memberModel.getMemberByEoa(eoa);
+            const nowMember = await memberModel.getMember(message.member.user.id);
+            const isEOA = await getDonate.isEOA(eoa);
+            
+            if (!isEOA) {
+              sendMessage = "こちらのアドレスはEOAではありません。 \n EOA:" + eoa;
+            } else if (
+              exist.DiscordId != undefined &&
+              exist.DiscordId != message.member.user.id
+            ) {
+              sendMessage =
+                "こちらのEOAは " + exist.Name + " に利用されています \n EOA:" + eoa;
+            } else if (
+              exist.message == "member not found" &&
+              (nowMember == undefined ||
+                nowMember.Eoa == undefined ||
+                nowMember.Eoa == "")
+            ) {
+              // 新規メンバーの場合は先に作成
+              await memberModel.memberCreate({
+                DiscordId: message.member.user.id,
+                Name: member.Name || message.member.user.global_name,
+                Username: member.Username,
+                Globalname: member.Globalname,
+                Roles: member.Roles,
+                Icon: member.Icon,
+                Join: member.Join,
+                Eoa: "", // 一時的に空
+                TmpEoa: eoa,
+              });
+              
+              const secret = utils.generateRandomString(12);
+              await memberModel.memberSetSecret(
+                message.member.user.id,
+                message.data.options[0].value,
+                secret,
+                message.member.roles
+              );
+              sendMessage =
+                message.member.user.global_name +
+                "のアカウントを以下のウォレットアドレスに紐づけます \n EOA:" +
+                eoa +
+                "\n" +
+                "\n<ご注意>:" +
+                "\n登録されたウォレットアドレスに入っているトークンによりロールが付与されます。" +
+                "\nウォレットアドレスを変更すると別の人とみなされますのでご注意ください" +
+                "\n" +
+                "\n以下のURLにメタマスクをインストールしたブラウザでアクセスし、ウォレットを接続して登録を完了してください。" +
+                "\nURL : " +
+                CONST.PROVIDER_URL +
+                "/regist/" +
+                message.member.user.id +
+                "/" +
+                secret +
+                "\n SECRET : " +
+                secret;
+            } else if (eoa == nowMember.Eoa) {
+              await memberModel.memberUpdate(member);
+              sendMessage = "メンバー情報をアップデートしました。 \n EOA:" + eoa;
+            } else {
+              sendMessage =
+                "あなたのDiscordには既に\n" +
+                nowMember.Eoa +
+                "が紐づいています" +
+                "\n解除するには以下のURLにメタマスクをインストールしたブラウザでアクセスしてください。" +
+                CONST.PROVIDER_URL +
+                "/disconnect/";
+            }
+
+            await controller.sendMessage({
+              function: "discord-direct-message",
+              params: {
+                message: sendMessage,
+                userId: message.member.user.id,
+              },
+            });
+          } catch (error) {
+            console.error("Error in regist command:", error);
+            await controller.sendMessage({
+              function: "discord-direct-message",
+              params: {
+                message: "エラーが発生しました。しばらく待ってから再度お試しください。",
+                userId: message.member.user.id,
+              },
+            });
+          }
+        })();
       }
 
       if (message.data.name === "member-sbt") {
         if (!message.member.roles.includes(CONST.DISCORD_HOLDER_ROLE)) {
-          res.send({
+          return res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
               content: "会員証の発行にはHolder ＆FAN ロールが必要です。",
@@ -663,7 +780,7 @@ app.post(
           "/" +
           secret;
 
-        await controller.sqsSend({
+        await controller.sendMessage({
           function: "discord-direct-message",
           params: {
             message: sendMes,
@@ -691,7 +808,7 @@ app.post(
         );
 
         const sendMes =
-          "記事の執筆はこちらから \n EOA : " +
+          "記事の執筆は以下のサイトで行ってください \n EOA : " +
           eoa +
           "\n\n以下のURLにメタマスクをインストールしたブラウザでアクセスしウォレットを接続してログインしてください。" +
           "\nURL: " +
@@ -700,7 +817,7 @@ app.post(
           message.member.user.id +
           "/" +
           secret;
-        await controller.sqsSend({
+        await controller.sendMessage({
           function: "discord-direct-message",
           params: {
             message: sendMes,
@@ -719,63 +836,97 @@ app.post(
 
       if (message.data.name === "apply") {
         console.log("apply");
-        const eoa = await memberModel.discordId2eoa(message.member.user.id);
-        const ownlist = await getOwn.getOwnByEoa(eoa);
-        let responseMes = "";
-        let tokenCount = 0;
 
-        if (ownlist.nftList.length > 0) {
-          responseMes = responseMes + "NFT LIST\n";
-          for (let key in ownlist.nftList) {
-            tokenCount++;
-            responseMes =
-              responseMes +
-              ownlist.nftList[key][0] +
-              ":" +
-              ownlist.nftList[key][1] +
-              " tokens\n";
-          }
-        }
-
-        if (ownlist.sbtList.length > 0) {
-          responseMes = responseMes + "SBT LIST\n";
-          for (let key in ownlist.sbtList) {
-            tokenCount++;
-            responseMes =
-              responseMes +
-              ownlist.sbtList[key][0] +
-              ":" +
-              ownlist.sbtList[key][1] +
-              " tokens\n";
-          }
-        }
-
-        if (tokenCount > 0) {
-          discordConnect.setRoleId(message.member.user.id, "Holder &Fan");
-          responseMes =
-            "あなたは有効なNFTの所有者です。\n" +
-            "Holder & FAN ロールが付与されました。\n" +
-            "あなたの持っているNFT\n" +
-            responseMes;
-        } else {
-          responseMes = "あなたは有効なNFTを持っていません";
-        }
-
-        await controller.sqsSend({
-          function: "discord-direct-message",
-          params: {
-            message: responseMes,
-            userId: message.member.user.id,
-          },
-        });
-
+        // 即座にレスポンスを返す
         res.send({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: responseMes,
+            content: "NFT所有状況を確認中です。結果はDMでお知らせします。",
             flags: 64,
           },
         });
+
+        // 非同期で処理を実行
+        (async () => {
+          try {
+            const eoa = await memberModel.discordId2eoa(message.member.user.id);
+
+            // Ethereum設定の確認
+            if (!CONST.MANAGER_CA || !CONST.RPC_URL) {
+              await controller.sendMessage({
+                function: "discord-direct-message",
+                params: {
+                  message:
+                    "申し訳ございません。システムの設定が完了していません。管理者にお問い合わせください。",
+                  userId: message.member.user.id,
+                },
+              });
+              return;
+            }
+
+            const ownlist = await getOwn.getOwnByEoa(eoa);
+            let responseMes = "";
+            let tokenCount = 0;
+
+            if (ownlist.nftList.length > 0) {
+              responseMes = responseMes + "NFT LIST\n";
+              for (let key in ownlist.nftList) {
+                tokenCount++;
+                responseMes =
+                  responseMes +
+                  ownlist.nftList[key][0] +
+                  ":" +
+                  ownlist.nftList[key][1] +
+                  " tokens\n";
+              }
+            }
+
+            if (ownlist.sbtList.length > 0) {
+              responseMes = responseMes + "SBT LIST\n";
+              for (let key in ownlist.sbtList) {
+                tokenCount++;
+                responseMes =
+                  responseMes +
+                  ownlist.sbtList[key][0] +
+                  ":" +
+                  ownlist.sbtList[key][1] +
+                  " tokens\n";
+              }
+            }
+
+            if (tokenCount > 0) {
+              await discordConnect.setRoleId(
+                message.member.user.id,
+                "Holder &Fan"
+              );
+              responseMes =
+                "あなたは有効なNFTの所有者です。\n" +
+                "Holder & FAN ロールが付与されました。\n" +
+                "あなたの持っているNFT\n" +
+                responseMes;
+            } else {
+              responseMes = "あなたは有効なNFTを持っていません";
+            }
+
+            await controller.sendMessage({
+              function: "discord-direct-message",
+              params: {
+                message: responseMes,
+                userId: message.member.user.id,
+              },
+            });
+          } catch (error) {
+            console.error("Error in apply command:", error);
+            await controller.sendMessage({
+              function: "discord-direct-message",
+              params: {
+                message:
+                  "エラーが発生しました。しばらく待ってから再度お試しください。",
+                userId: message.member.user.id,
+              },
+            });
+          }
+        })();
       }
 
       if (message.data.name === "sync") {
@@ -784,7 +935,7 @@ app.post(
           let returnmes = "";
           switch (synctype) {
             case "notion":
-              await controller.sqsSend({
+              await controller.sendMessage({
                 function: "notion-sync",
                 params: {
                   user_id: message.member.user.id,
@@ -794,7 +945,7 @@ app.post(
               returnmes = "メンバーをnotionに連携しました。";
               break;
             case "dynamo":
-              await controller.sqsSend({
+              await controller.sendMessage({
                 function: "dynamo-sync",
                 params: {
                   user_id: message.member.user.id,
@@ -870,6 +1021,6 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${CONST.API_ENV}`);
   console.log(`API Name: ${CONST.API_NAME}`);
-  console.log(`Version: ${CONST.VERSION || '1.0.0'}`);
-  console.log('Server started successfully. Ready to accept connections.');
+  console.log(`Build Time: ${CONST.BUILD_TIME}`);
+  console.log("Server started successfully. Ready to accept connections.");
 });

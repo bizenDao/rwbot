@@ -22,6 +22,13 @@ const memberSetSecret = async (
 ) => {
   const holdRoles = roles.map((num) => roleNames[num]);
   const member = await getMember(id);
+  
+  // メンバーが見つからない場合のエラーハンドリング
+  if (!member || !member.DiscordId) {
+    console.error(`Member not found for ID: ${id}`);
+    throw new Error(`Member not found for Discord ID: ${id}`);
+  }
+  
   let params = CRUD.update;
   params.TableName = TableName;
   params.Key.DiscordId.S = String(member.DiscordId);

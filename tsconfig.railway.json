@@ -29,5 +29,6 @@
     "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*"],
+  "files": ["src/index-railway.ts"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
 }

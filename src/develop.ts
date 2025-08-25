@@ -9,7 +9,7 @@ const message: Message = {
     input3: "テスト",
   },
 };
-await controller.sqsSend(message);
+await controller.sendMessage(message);
 await controller.discordList();
 await controller.dynamoList();
 await controller.notionList();

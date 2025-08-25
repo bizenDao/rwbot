@@ -5,7 +5,8 @@ export const CONST = {
   API_ENV: process.env.API_ENV,
   API_NAME: process.env.API_NAME,
   API_URL: process.env.API_URL,
-  VERSION: process.env.VERSION,
+  VERSION: process.env.VERSION || new Date().toISOString(),
+  BUILD_TIME: new Date().toISOString(),
   PROVIDER_URL: process.env.PROVIDER_URL,
   SQS_QUEUE_URL: process.env.SQS_QUEUE_URL,
   DISCORD_GUILD_ID: process.env.DISCORD_GUILD_ID,
@@ -30,7 +31,6 @@ export const CONST = {
   RPC_URL: process.env.RPC_URL,
   MANAGER_CA: process.env.MANAGER_CA,
   DONATE_CA: process.env.DONATE_CA,
-  TBA_REGIST_CA: process.env.TBA_REGIST_CA,
 
   RETRY_WAIT: 500,
   RETRY_LIMIT: 2,

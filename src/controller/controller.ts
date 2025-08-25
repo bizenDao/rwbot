@@ -1,5 +1,5 @@
 import { CONST } from "../common/const.js";
-import sqsService from "../service/sqs.js";
+// import sqsService from "../service/sqs.js"; // SQS不使用
 import discordService from "../service/discord.js";
 import { sendDirectMessage } from "../service/discord-dm.js";
 import dynamoService from "../service/dynamo.js";
@@ -53,8 +53,9 @@ const notionList = async () => {
   return result;
 };
 
-const sqsSend = async (message: Message) => {
-  // SQSを使わずに直接Discord APIを呼び出す
+// メッセージ送信（SQSは使用しない）
+const sendMessage = async (message: Message) => {
+  // 直接Discord APIを呼び出す
   if (message.function === "discord-message") {
     const { channelId, message: content } = message.params as any;
     return await discordService.sendMessage(content, channelId);
@@ -77,9 +78,9 @@ const sqsSend = async (message: Message) => {
     return { message: "Sync executed" };
   }
   
-  // その他のメッセージはSQSに送信（互換性のため）
-  const result = await sqsService.sendMessage(JSON.stringify(message));
-  return result;
+  // その他のメッセージタイプ
+  console.warn(`Unknown message function: ${message.function}`, message);
+  return { message: "Message type not implemented" };
 };
 const notionUpdate = async () => {
   const discordList = await discordService.getMemberList();
@@ -103,7 +104,7 @@ const controller = {
   shopList,
   dynamoUpdate,
   notionUpdate,
-  sqsSend,
+  sendMessage,
   eoaList,
 };
 
