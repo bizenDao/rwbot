@@ -1,6 +1,7 @@
 import { CONST } from "../common/const.js";
 import sqsService from "../service/sqs.js";
 import discordService from "../service/discord.js";
+import { sendDirectMessage } from "../service/discord-dm.js";
 import dynamoService from "../service/dynamo.js";
 import notionService from "../service/notion.js";
 import memberModel from "../model/members.js";
@@ -53,6 +54,30 @@ const notionList = async () => {
 };
 
 const sqsSend = async (message: Message) => {
+  // SQSを使わずに直接Discord APIを呼び出す
+  if (message.function === "discord-message") {
+    const { channelId, message: content } = message.params as any;
+    return await discordService.sendMessage(content, channelId);
+  } else if (message.function === "discord-direct-message") {
+    const { userId, message: content } = message.params as any;
+    try {
+      await sendDirectMessage(userId, content);
+      return { message: "DM sent successfully" };
+    } catch (error) {
+      console.error("Failed to send DM:", error);
+      return { error: "Failed to send DM" };
+    }
+  } else if (message.function === "notion-sync" || message.function === "dynamo-sync") {
+    // 同期処理は直接実行
+    if (message.function === "notion-sync") {
+      await notionUpdate();
+    } else {
+      await dynamoUpdate();
+    }
+    return { message: "Sync executed" };
+  }
+  
+  // その他のメッセージはSQSに送信（互換性のため）
   const result = await sqsService.sendMessage(JSON.stringify(message));
   return result;
 };
