@@ -32,14 +32,9 @@ const sendApi = async (endpoint, method, body) => {
 };
 
 async function loadCustomConstants() {
-  try {
-    const { CUSTOM_SETTINGS } = await import("../common/customSettings.js");
-    roles = CUSTOM_SETTINGS.roles;
-    roleIds = CUSTOM_SETTINGS.roleIds;
-  } catch (error) {
-    roles = CONST.roles;
-    roleIds = CONST.roleIds;
-  }
+  // customSettings.jsは存在しないため、デフォルト値を使用
+  roles = CONST.roles || {};
+  roleIds = CONST.roleIds || {};
 }
 
 const getMemberList = async (nextid = null) => {
@@ -70,6 +65,7 @@ const getMemberList = async (nextid = null) => {
   });
 
   const result = await response.json();
+  if (!Array.isArray(result)) return json;
   for (let i = 0; i < result.length; i++) {
     const data = result[i];
     if (data.user.bot) {
@@ -105,7 +101,7 @@ const getMemberList = async (nextid = null) => {
     json.push(member);
   }
 
-  if (result.length === 1000) {
+  if (Array.isArray(result) && result.length === 1000) {
     const headers = await response.headers;
     // x-ratelimit-remaining残りが3を切ったら1秒待つ
     if (parseInt(headers.get("x-ratelimit-remaining")) <= 3) {
