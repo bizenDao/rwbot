@@ -1,15 +1,50 @@
 import { CONST } from "../common/const.js";
 import { Client, GatewayIntentBits } from "discord.js";
 import memberModel from "../model/members.js";
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
-});
+
+let client = null;
 const TOKEN = CONST.DISCORD_BOT_KEY;
 const GUILD_ID = CONST.DISCORD_GUILD_ID;
-client.login(TOKEN);
+
+// Discord Clientの初期化を遅延実行
+const initializeClient = async () => {
+  if (client) return client;
+  
+  if (!TOKEN) {
+    console.warn("Discord bot token is not set. Discord features will be disabled.");
+    return null;
+  }
+  
+  client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  });
+  
+  try {
+    await client.login(TOKEN);
+    console.log("Discord client initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize Discord client:", error);
+    client = null;
+  }
+  
+  return client;
+};
 
 const memberInfo = async (id) => {
-  const guild = await client.guilds.fetch(GUILD_ID);
+  const discordClient = await initializeClient();
+  if (!discordClient) {
+    return {
+      DiscordId: id,
+      Name: "Unknown",
+      Username: "Unknown",
+      Globalname: "Unknown",
+      Roles: [],
+      Icon: "",
+      Join: null,
+    };
+  }
+  
+  const guild = await discordClient.guilds.fetch(GUILD_ID);
   const member = await guild.members.fetch(id);
   const roles = member.roles.cache;
   let roleList = [];
@@ -37,7 +72,13 @@ const memberInfo = async (id) => {
 };
 
 const setRoleId = async (memberId, roleName) => {
-  const guild = await client.guilds.fetch(GUILD_ID);
+  const discordClient = await initializeClient();
+  if (!discordClient) {
+    console.warn("Discord client not available");
+    return false;
+  }
+  
+  const guild = await discordClient.guilds.fetch(GUILD_ID);
   const member = await guild.members.fetch(memberId);
   const roles = await guild.roles.fetch();
   roles.forEach((role) => {
