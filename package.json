@@ -9,7 +9,10 @@
     "test": "sh ./deploy/build.sh test && exit 1",
     "flow": "sh ./deploy/build.sh flow && exit 1",
     "stg": "sh ./deploy/build.sh stg && exit 1",
-    "prd": "sh ./deploy/build.sh prd && exit 1"
+    "prd": "sh ./deploy/build.sh prd && exit 1",
+    "build": "tsc",
+    "start": "node dist/index-railway.js",
+    "dev": "ts-node src/index-railway.ts"
   },
   "repository": {
     "type": "git",
