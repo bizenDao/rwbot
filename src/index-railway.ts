@@ -628,6 +628,17 @@ app.post(
     if (message.type === InteractionType.APPLICATION_COMMAND) {
       console.log("slash command request" + JSON.stringify(message));
 
+      // DMからのコマンドをチェック
+      if (!message.guild_id) {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: "コマンドはBizenDAOサーバから送信してください",
+            flags: 64, // Ephemeral message
+          },
+        });
+      }
+
       if (message.data.name === "gm") {
         await controller.sendMessage({
           function: "discord-message",
